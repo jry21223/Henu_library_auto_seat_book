@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>河大图书馆自动预约系统</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div id="app" class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold text-center text-blue-600 mb-8">
+            <i class="fas fa-book-reader mr-2"></i>河大图书馆座位预约管家
+        </h1>
+
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8 max-w-2xl mx-auto">
+            <h2 class="text-xl font-semibold mb-4 text-gray-700">添加新任务</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input v-model="form.student_id" type="text" placeholder="学号" class="border p-2 rounded w-full">
+                <input v-model="form.password" type="password" placeholder="CAS密码" class="border p-2 rounded w-full">
+                <select v-model="form.location" class="border p-2 rounded w-full">
+                    <option disabled value="">选择区域</option>
+                    <option v-for="loc in locationList" :key="loc" :value="loc" v-text="loc"></option>
+                </select>
+                <input v-model="form.seat_no" type="text" placeholder="座位号 (如 105)" class="border p-2 rounded w-full">
+            </div>
+            <button @click="addUser" :disabled="loading" class="mt-4 w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 transition">
+                <span v-if="loading"><i class="fas fa-spinner fa-spin"></i> 正在验证登录...</span>
+                <span v-else>添加并保存</span>
+            </button>
+            <p v-if="errorMsg" class="text-red-500 mt-2 text-sm" v-text="errorMsg"></p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div v-for="user in users" :key="user.id" class="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500 relative">
+                <button @click="deleteUser(user.id)" class="absolute top-2 right-2 text-gray-400 hover:text-red-500">
+                    <i class="fas fa-trash"></i>
+                </button>
+
+                <div class="flex items-center mb-4">
+                    <div class="bg-blue-100 rounded-full p-3 mr-3">
+                        <i class="fas fa-user text-blue-500"></i>
+                    </div>
+                    <div>
+                        <p class="font-bold text-lg" v-text="user.student_id"></p>
+                        <p class="text-sm text-gray-500">
+                            目标: {% raw %}{{ user.location }} - {{ user.seat_no }}号{% endraw %}
+                        </p>
+                    </div>
+                </div>
+
+                <div class="bg-gray-50 rounded p-3 mb-4 text-sm">
+                    <p class="font-semibold text-gray-600">最新状态:</p>
+                    <p :class="getStatusColor(user.last_status)" v-text="user.last_status || '暂无记录'"></p>
+                </div>
+
+                <div class="flex justify-between items-center">
+                    <span class="text-xs text-gray-400">自动运行: 每日 06:30</span>
+                    <button @click="runNow(user.id)" class="text-sm bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">
+                        <i class="fas fa-play mr-1"></i>手动运行
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue
+
+        createApp({
+            data() {
+                return {
+                    users: [],
+                    locationList: [], // 新增：用于存储从后端拿到的区域列表
+                    form: { student_id: '', password: '', location: '', seat_no: '' },
+                    loading: false,
+                    errorMsg: ''
+                }
+            },
+            mounted() {
+                this.fetchUsers()
+                this.fetchLocations()
+            },
+            methods: {
+                async fetchLocations() {
+                    try {
+                        const res = await fetch('/api/locations');
+                        if (res.ok) {
+                            this.locationList = await res.json();
+                            // 默认选中第一个（可选）
+                            if (this.locationList.length > 0) {
+                                this.form.location = this.locationList[0];
+                            }
+                        }
+                    } catch (e) {
+                        console.error("获取区域列表失败", e);
+                    }
+                },
+                async fetchUsers() {
+                    const res = await fetch('/api/users')
+                    this.users = await res.json()
+                },
+                async addUser() {
+                    if(!this.form.student_id || !this.form.password || !this.form.seat_no) return;
+                    this.loading = true;
+                    this.errorMsg = '';
+                    try {
+                        const res = await fetch('/api/users', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify(this.form)
+                        })
+                        if (!res.ok) {
+                            const err = await res.json()
+                            throw new Error(err.detail)
+                        }
+                        this.form.password = '';
+                        await this.fetchUsers();
+                    } catch (e) {
+                        this.errorMsg = e.message;
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+                async deleteUser(id) {
+                    if(!confirm('确定删除该任务吗？')) return;
+                    await fetch(`/api/users/${id}`, { method: 'DELETE' })
+                    this.fetchUsers()
+                },
+                async runNow(id) {
+                    alert('正在后台运行预约，请稍候刷新查看结果...')
+                    await fetch(`/api/run_now/${id}`, { method: 'POST' })
+                    this.fetchUsers()
+                },
+                getStatusColor(status) {
+                    if (!status) return 'text-gray-500';
+                    if (status.includes('成功') || status.includes('Success')) return 'text-green-600 font-bold';
+                    return 'text-red-500';
+                }
+            }
+        }).mount('#app')
+    </script>
+</body>
+</html>
