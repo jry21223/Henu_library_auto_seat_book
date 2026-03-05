@@ -1,5 +1,6 @@
 # 文件名: database.py
 from typing import Optional
+from pathlib import Path
 from sqlmodel import Field, Session, SQLModel, create_engine
 
 
@@ -10,10 +11,10 @@ class UserAccount(SQLModel, table=True):
     # 学号 (唯一索引)
     student_id: str = Field(index=True, unique=True)
 
-    # 密码 (实际部署建议加密，这里为了演示方便使用明文)
+    # 密码（由 secure_store.py 加密后存储）
     password: str
 
-    # 存储 TGT 和 Access Token 的 JSON 字符串，用于免密登录
+    # 存储 TGT 和 Access Token 的 JSON 字符串（由 secure_store.py 加密后存储）
     cookies_json: Optional[str] = Field(default=None)
 
     # 预约配置
@@ -26,7 +27,8 @@ class UserAccount(SQLModel, table=True):
 
 
 # SQLite 数据库文件名
-sqlite_file_name = "henu_library.db"
+BASE_DIR = Path(__file__).resolve().parent
+sqlite_file_name = BASE_DIR / "henu_library.db"
 sqlite_url = f"sqlite:///{sqlite_file_name}"
 
 # 创建数据库引擎

@@ -6,3 +6,5 @@ pycryptodome
 apscheduler
 jinja2
 python-multipart
+mcp
+cryptography

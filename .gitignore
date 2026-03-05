@@ -1,0 +1,28 @@
+# Runtime secrets/data
+.henu_secret.key
+henu_library.db
+*.sqlite
+*.sqlite3
+
+# Local profile or cookies (if introduced later)
+henu_profile.json
+henu_cookies.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.Python
+.venv/
+venv/
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
