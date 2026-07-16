@@ -1,6 +1,9 @@
+**本项目已转移至 https://github.com/jry21223/HENU_Assistant 
+
 # 河大图书馆预约 Web
 
 本目录提供图书馆预约的 Web 服务（FastAPI）。
+
 
 ## 环境要求
 
