@@ -1,4 +1,4 @@
-**本项目已转移至 https://github.com/jry21223/HENU_Assistant 
+**本项目已转移至 https://github.com/jry21223/HENU_Assistant**
 
 # 河大图书馆预约 Web
 
